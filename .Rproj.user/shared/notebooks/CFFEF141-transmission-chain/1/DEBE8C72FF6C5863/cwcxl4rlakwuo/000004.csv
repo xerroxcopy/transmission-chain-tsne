@@ -1,0 +1,31 @@
+"0","df_all <- 
+  list.files(""input/drawing/"", full.names=T) |> 
+  map(~ load.image(file = .x)) |> 
+  map(~ resize(im = .x, size_x = 128, size_y = 128)) |> 
+  map(~ grayscale(im = .x)) |> 
+  map(~t(as.numeric(.))) |> 
+  map_dfr(~ as.data.frame(.)) |> 
+  rownames_to_column(var = ""t"")
+"
+"2","*** recursive gc invocation
+"
+"2","*** recursive gc invocation
+"
+"2","*** recursive gc invocation
+"
+"2","*** recursive gc invocation
+"
+"2","*** recursive gc invocation
+"
+"2","*** recursive gc invocation
+"
+"2","*** recursive gc invocation
+"
+"2","*** recursive gc invocation
+"
+"2","*** recursive gc invocation
+"
+"2","*** recursive gc invocation
+"
+"2","*** recursive gc invocation
+"

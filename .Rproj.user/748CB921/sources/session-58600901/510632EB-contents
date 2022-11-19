@@ -1,0 +1,493 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+# 
+累積的な変異によって生じる設計の浮動(20160303_JSSD_Inheritance_11J_resubmission4.pdf)のやりなおし。t-SNEもしくはUMAPで画像をとってみて、うまくいけばその距離がどう変遷したかを追う。きれいにすすすっと動いていくものと、がくっがくっと変わるものがあり、がくがく変わるのは断続平衡説のように？　指示によるものだから、それによってなんか傾きとかが言えるといいんだけどねえ
+あんまりresubmissionを目指さず、umapの練習だと思いたい。ああいやだ
+
+
+# 練習
+
+[Uniform Manifold Approximation and Projection in R](https://cran.r-project.org/web/packages/umap/vignettes/umap.html)をもとにまずは練習。
+
+```{r}
+install.packages("umap")
+install.packages("tidyverse")
+install.packages("remotes")
+remotes::install_github("jlmelville/snedata")
+install.packages("imager")
+install.packages("purrr")
+install.packages("Rtsne") # https://github.com/jkrijthe/Rtsne
+install.packages("irlba") # for Rtsne partial PCA
+```
+
+
+```{r}
+library(umap)
+library(tidyverse)
+library(snedata)
+# library(imager)
+library(purrr)
+library(Rtsne)
+library(irlba) # for sparse PCA, not needed?
+```
+## iris
+```{r}
+iris_umap <- iris |> 
+  select(where(is.numeric)) |> 
+  umap()
+iris_df <- iris_umap$layout |> 
+  as_tibble() |> 
+  transmute(x = V1, y = V2) |> 
+  mutate(labels = iris$Species)
+
+iris_df |> 
+  ggplot(aes(x = x, y = y, color = labels)) +
+  geom_point()
+ggsave("./output/iris_umap.png", height = 1000, width = 1500, unit = "px")
+```
+
+
+## MNIST
+
+https://jlmelville.github.io/uwot/umap-examples.html
+
+```{r}
+mnist <- snedata::download_mnist()
+# mnist_umap <- umap(mnist, pca = 100) # error... :(
+mnist_df <- mnist |> 
+  as_tibble() |>  
+  mutate(across(everything(), as.numeric)) |> 
+  select(-Label) # ラベル列を落とす
+mnist_umap <- mnist_df |> 
+  uwot::umap(
+  pca = 10, 
+  verbose = TRUE, 
+  n_threads = 5,
+  fast_sgd = TRUE
+  ) # 5min?
+
+mnist_umap_df <- 
+  # mnist_umap$layout |> # umap::umap(), not uwot::umap()
+  mnist_umap |> 
+  as_tibble() |> 
+  transmute(x = V1, y = V2) |> 
+  mutate(label = mnist$Label)
+mnist_umap_df |> 
+  ggplot(aes(x = x, y = y, colour = label)) +
+  geom_point(data = mnist_umap_df |> select(-label), colour = "grey80", size = .001) +
+  geom_point(alpha = .5, size = .001) +
+  facet_wrap(vars(label)) +
+  theme_classic() +
+  theme(legend.position = "none", aspect.ratio = 1)
+ggsave("./output/mnist_umap.png", height = 3000, width = 3000, unit = "px", dpi = 300)
+```
+
+できた。でもLeakageしているので正しくは以下のようにしなければなるまい
+
+```{r}
+mnist <- snedata::download_mnist()
+mnist_umap <- umap(mnist, pca = 100) # error... :(
+mnist_df <- mnist |> 
+  as_tibble() |>  
+  mutate(across(everything(), as.numeric)) |> 
+  select(-Label)
+mnist_umap <- mnist_df |> 
+  umap(
+  , pca = 10)
+
+mnist_umap_df <- 
+  mnist_umap$layout |> 
+  as_tibble() |> 
+  transmute(x = V1, y = V2) |> 
+  mutate(label = mnist$Label)
+mnist_umap_df |> 
+  ggplot(aes(x = x, y = y, colour = label)) +
+  geom_point(alpha = .5, size = .001) +
+  theme_minimal()
+ggsave("./output/mnist_umap.png", height = 1000, width = 1500, unit = "px")
+```
+
+# convert image jpg files into dataframe
+
+{imager} https://dahtah.github.io/imager/imager.html
+
+```{r}
+getwd()
+# file <- system.file('/Users/mm/Documents/transmission-chain-tsne/2-1_000.jpg', package = "imager") # doesn't work
+load.image("./2-1_000.jpg") |> plot()
+load.image("./2-1_000.jpg") |>  deriche(2,order=2,axis="x") |> plot()#Edge detector along x-axis
+a <- boats > 250
+test_img <- load.image()
+test_img
+test_img |> 
+  resize(size_x = 128, size_y = 128) |> # https://rdrr.io/cran/imager/man/resize.html
+  grayscale() |> # somehow 3 channels
+  as.numeric() 
+826*826
+```
+
+```{r}
+df_one <- 
+  paste0(
+    "input/drawing/2-1_", 
+    formatC(0:41, width = 3, flag = "0"),
+    ".jpg"
+  ) |> 
+  map(~ load.image(file = .x)) |> 
+  map(~ resize(im = .x, size_x = 128, size_y = 128)) |> 
+  map(~ grayscale(im = .x)) |> 
+  map(~t(as.numeric(.))) |> 
+  map_dfr(~ as.data.frame(.))
+
+df_two <- 
+  paste0(
+    "input/drawing/2-2_", 
+    formatC(0:41, width = 3, flag = "0"),
+    ".jpg"
+  ) |> 
+  map(~ load.image(file = .x)) |> 
+  map(~ resize(im = .x, size_x = 128, size_y = 128)) |> 
+  map(~ grayscale(im = .x)) |> 
+  map(~t(as.numeric(.))) |> 
+  map_dfr(~ as.data.frame(.)) 
+df_three <- 
+  paste0(
+    "input/drawing/2-3_", 
+    formatC(0:41, width = 3, flag = "0"),
+    ".jpg"
+  ) |> 
+  map(~ load.image(file = .x)) |> 
+  map(~ resize(im = .x, size_x = 128, size_y = 128)) |> 
+  map(~ grayscale(im = .x)) |> 
+  map(~t(as.numeric(.))) |> 
+  map_dfr(~ as.data.frame(.)) 
+df_four <- 
+  paste0(
+    "input/drawing/2-4_", 
+    formatC(0:41, width = 3, flag = "0"),
+    ".jpg"
+  ) |> 
+  map(~ load.image(file = .x)) |> 
+  map(~ resize(im = .x, size_x = 128, size_y = 128)) |> 
+  map(~ grayscale(im = .x)) |> 
+  map(~t(as.numeric(.))) |> 
+  map_dfr(~ as.data.frame(.)) 
+df_five <- 
+  paste0(
+    "input/drawing/2-5_", 
+    formatC(0:38, width = 3, flag = "0"),
+    ".jpg"
+  ) |> 
+  map(~ load.image(file = .x)) |> 
+  map(~ resize(im = .x, size_x = 128, size_y = 128)) |> 
+  map(~ grayscale(im = .x)) |> 
+  map(~t(as.numeric(.))) |> 
+  map_dfr(~ as.data.frame(.))
+df_six <- 
+  paste0(
+    "input/drawing/2-6_", 
+    formatC(0:41, width = 3, flag = "0"),
+    ".jpg"
+  ) |> 
+  map(~ load.image(file = .x)) |> 
+  map(~ resize(im = .x, size_x = 128, size_y = 128)) |> 
+  map(~ grayscale(im = .x)) |> 
+  map(~t(as.numeric(.))) |> 
+  map_dfr(~ as.data.frame(.)) 
+df_seven <- 
+  paste0(
+    "input/drawing/2-7_", 
+    formatC(0:38, width = 3, flag = "0"),
+    ".jpg"
+  ) |> 
+  map(~ load.image(file = .x)) |> 
+  map(~ resize(im = .x, size_x = 128, size_y = 128)) |> 
+  map(~ grayscale(im = .x)) |> 
+  map(~t(as.numeric(.))) |> 
+  map_dfr(~ as.data.frame(.)) 
+df_eight <- 
+  paste0(
+    "input/drawing/2-8_", 
+    formatC(0:41, width = 3, flag = "0"),
+    ".jpg"
+  ) |> 
+  map(~ load.image(file = .x)) |> 
+  map(~ resize(im = .x, size_x = 128, size_y = 128)) |> 
+  map(~ grayscale(im = .x)) |> 
+  map(~t(as.numeric(.))) |> 
+  map_dfr(~ as.data.frame(.)) 
+```
+
+```{r}
+
+df_all <- 
+  list.files("input/drawing/", full.names=T) |> 
+  map(~ load.image(file = .x)) |> 
+  map(~ resize(im = .x, size_x = 128, size_y = 128))
+df_all <- df_all |> 
+  map(~ grayscale(im = .x)) |> 
+  map(~t(as.numeric(.))) |> 
+  map_dfr(~ as.data.frame(.)) 
+```
+
+
+
+```{r}
+# exp 2-5, 2-7: T=38
+one_umap <- df_one |> 
+  umap()
+two_umap <- df_two |> 
+  umap()
+three_umap <- df_three |> 
+  umap()
+four_umap <- df_four |> 
+  umap()
+five_umap <- df_five |> 
+  umap()
+six_umap <- df_six |> 
+  umap()
+seven_umap <- df_seven |> 
+  umap()
+eight_umap <- df_eight |> 
+  umap()
+all_umap <- df_all |> 
+  umap()
+  
+
+one_umap_df <- one_umap$layout |> 
+  as_tibble() |> 
+  transmute(x = V1, y = V2) |> 
+  mutate(exp = rep(1, 42), t = 0:41)
+one_umap_df |> View()
+two_umap_df <- two_umap$layout |> 
+  as_tibble() |> 
+  transmute(x = V1, y = V2) |> 
+  mutate(exp = rep(2, 42), t = 0:41)
+three_umap_df <- three_umap$layout |> 
+  as_tibble() |> 
+  transmute(x = V1, y = V2) |> 
+  mutate(exp = rep(3, 42), t = 0:41)
+four_umap_df <- four_umap$layout |> 
+  as_tibble() |> 
+  transmute(x = V1, y = V2) |> 
+  mutate(exp = rep(4, 42), t = 0:41)
+five_umap_df <- five_umap$layout |> 
+  as_tibble() |> 
+  transmute(x = V1, y = V2) |> 
+  mutate(exp = rep(5, 39), t = 0:38)
+six_umap_df <- six_umap$layout |> 
+  as_tibble() |> 
+  transmute(x = V1, y = V2) |> 
+  mutate(exp = rep(6, 42), t = 0:41)
+seven_umap_df <- seven_umap$layout |> 
+  as_tibble() |> 
+  transmute(x = V1, y = V2) |> 
+  mutate(exp = rep(7, 39), t = 0:38)
+eight_umap_df <- eight_umap$layout |> 
+  as_tibble() |> 
+  transmute(x = V1, y = V2) |> 
+  mutate(exp = rep(8, 42), t = 0:41)
+all_umap_df <- all_umap$layout |> 
+  as_tibble() |> 
+  transmute(x = V1, y = V2)
+  
+```
+
+
+
+```{r fig.width=5, fig.height=3}
+experiments_df <- bind_rows(one_umap_df, two_umap_df, three_umap_df, four_umap_df, five_umap_df, six_umap_df, seven_umap_df, eight_umap_df)
+
+experiments_df |> 
+  ggplot(aes(x = x, y = y, colour = t)) +
+  geom_point(size = .3) +
+  # geom_path() +
+  geom_text(aes(label = t), hjust = 0, nudge_x = .1, size = 2) +
+  scale_colour_viridis_c() +
+  theme_minimal() +
+  facet_wrap(facets = vars(exp), nrow = 2) +
+  theme(
+    panel.grid = element_blank(),
+    axis.line = element_line())
+```
+
+### test: plot UMAP for all drawings, from Exp1-8
+
+```{r fig.width=5, fig.height=3}
+all_umap_df2 <- all_umap_df |>
+  mutate(filename = list.files("input/drawing/")) |> 
+  mutate(experiment = str_match(filename, "2-(\\d)")[,2] |> as.numeric(), 
+         t = str_extract(filename, "\\d{3}") |> as.numeric())
+```
+
+
+```{r fig.width=5, fig.height=3}
+
+all_umap_df2 |> 
+  ggplot(aes(x = x, y = y, colour = experiment |> as.factor())) +
+  geom_point(size = .3) +
+  # geom_path(aes(colour = t, group = experiment)) +
+  geom_text(aes(label = t), hjust = 0, nudge_x = .1, size = 2) +
+  # scale_colour_viridis_d() +
+  theme_minimal() +
+  theme(
+    panel.grid = element_blank(),
+    axis.line = element_line())
+```
+
+
+
+## tune
+
+そもそもデフォルトの値で、しかもUMAPなのがまずいような気もする。Large datasetが基本だと思うので。UMAP以外とか、PCAとか、色々見直してみよう。
+
+
+### t-SNE
+
+[R wrapper for Van der Maaten’s Barnes-Hut implementation of t-Distributed Stochastic Neighbor Embedding](https://github.com/jkrijthe/Rtsne)
+
+t-SNEのクラスターサイズは何も意味しない、距離もあんまり意味ないかも：https://distill.pub/2016/misread-tsne/
+
+というか、伝達連鎖法の順番をこういう方法で復元できる、という論文にするか？こんなにいろいろな条件でもロバストに順番がだいたいわかりますよ、みたいな。距離は関係ないのだとしたら。
+
+練習
+
+```{r}
+iris_unique <- unique(iris) # Remove duplicates
+set.seed(42) # Sets seed for reproducibility
+tsne_out <- Rtsne(as.matrix(iris_unique[,1:4])) # Run TSNE
+plot(tsne_out$Y,col=iris_unique$Species,asp=1) # Plot the result
+```
+
+Perplexityはデータサイズの1/3が上限[らしい](https://www.slideshare.net/kato_kohaku/dimensionality-reduction-with-tsne-and-umap-using-r-176806642)(p21)。
+```{r}
+# Rtsne(df_seven) # error, perplexity (default 30) too large
+seven_tsne <- df_seven |> select(-t) |> 
+  as.matrix() |> 
+  Rtsne(
+    perplexity = 12, # default 30, max datasize/3
+    exaggeration_factor = 15,  # default 12
+    n_threads = 4,
+    verbose = TRUE,
+    max_iter = 3000
+  )
+seven_tsne_df <- seven_tsne$Y |> 
+  as_tibble() |> 
+  rename(x = "V1", y = "V2") |> 
+  mutate(t = 0:38)
+seven_tsne_df |> 
+  ggplot(aes(x = x, y = y, colour = t)) +
+  geom_point(size = .3) +
+  geom_path() +
+  geom_text(aes(label = t), hjust = 0, nudge_x = .1, size = 2) +
+  scale_colour_viridis_c() +
+  theme_minimal() +
+  theme(
+    panel.grid = element_blank(),
+    axis.line = element_line())
+```
+だめですね！！
+
+### UMAP改善
+
+デフォルトの値は`umap.defaults`
+```{r}
+umap.defaults
+```
+
+```{r}
+seven_umap2 <- df_seven |> 
+  mutate(across(everything(), as.numeric)) |> # なぜか必要。なぜ
+  umap(verbose = TRUE, 
+       n_threads = 6, 
+       pca = 100, # 何も変わらん
+       min_dist =  .01, # default = .1
+       spread = .5
+       )
+
+seven_umap2_df <- seven_umap2$layout |> 
+  as_tibble() |> 
+  transmute(x = V1, y = V2) |> 
+  mutate(exp = rep(7, 39), t = 0:38)
+
+seven_umap2_df |> 
+  ggplot(aes(x = x, y = y, colour = t)) +
+  geom_point(size = .3) +
+  geom_path() +
+  geom_text(aes(label = t), hjust = 0, nudge_x = .1, size = 2) +
+  scale_colour_viridis_c() +
+  theme_minimal() +
+  # facet_wrap(facets = vars(exp), nrow = 2) +
+  theme(
+    panel.grid = element_blank(),
+    axis.line = element_line())
+ggsave("./output/exp2-7_mindist01spread3.png")
+```
+比較をいろいろしてみよう
+[purrr inside mutate](https://dcl-prog.stanford.edu/purrr-mutate.html)
+```{r}
+df_seven2 <- df_seven |> 
+  mutate(across(everything(), as.numeric))
+nested_df_grid_conditions <- 
+  expand_grid(min_dist = c(2^(-4:-1)), n_neighbors = 2^(1:4)) |> 
+  mutate(
+    umap = map2(
+      min_dist, 
+      n_neighbors,
+      ~ umap(
+        df_seven2,
+        spread = 2,
+        n_threads = 4, 
+        min_dist = .x,
+        n_neighbors = .y
+      )
+    )
+  )
+# unnest
+# unnesting a column of matrices doesn't unnest well
+# cf. https://community.rstudio.com/t/understanding-unnest-and-its-expectations/428 alistaire
+# but this method does not work either.
+# instead we use deframe but it cannot be performed in one long pipe
+df_unnested_matrix_column <- 
+  nested_df_grid_conditions |> 
+  rowwise() |> 
+  mutate(umap_df = umap |> extract2(1) |> list()) |> 
+  mutate(umap = NULL) |> 
+  ungroup() |> 
+  unnest_longer(umap_df, indices_to = "t")
+
+
+df_matrix_only <- 
+  df_unnested_matrix_column |> 
+  select(umap_df) |> 
+  deframe() |> 
+  as_tibble()
+df_grid_conditions <- 
+  bind_cols(
+    df_unnested_matrix_column, 
+    df_matrix_only
+  ) |> 
+  select(-umap_df) |> 
+  rename(x = "V1", y = "V2")
+```
+
+## plot
+
+```{r}
+df_grid_conditions |> colnames()
+df_grid_conditions |> 
+  ggplot(aes(x = x, y = y, colour = t)) +
+  geom_point(size = .3) + 
+  geom_path(size = .1) +
+  scale_colour_viridis_c() +
+  facet_grid(rows = vars(min_dist), cols = vars(n_neighbors)) +
+  theme_minimal() +
+  theme(
+    panel.grid = element_blank(),
+    axis.line = element_line())
+```
+
+

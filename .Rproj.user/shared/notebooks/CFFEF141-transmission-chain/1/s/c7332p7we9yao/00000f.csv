@@ -1,0 +1,11 @@
+"0","mnist_umap <- mnist_df |> 
+  umap(
+  pca = 10, 
+  verbose = TRUE, 
+  n_threads = 5
+  )
+"
+"2","[2022-08-18 12:21:05]  starting umap
+"
+"2","[2022-08-18 12:21:05]  creating graph of nearest neighbors
+"

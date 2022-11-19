@@ -1,0 +1,12 @@
+"0","seven_umap2 <- df_seven |> 
+  mutate(across(everything(), as.numeric)) |> # なぜか必要。なぜ
+  umap(verbose = TRUE, 
+       n_threads = 4, 
+       pca = 100, # 何も変わらん
+       metric = ""manhattan""
+       )
+"
+"2","*** recursive gc invocation
+"
+"2","*** recursive gc invocation
+"

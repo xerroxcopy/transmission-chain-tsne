@@ -1,0 +1,11 @@
+"0","seven_umap2 <- df_seven |> 
+  mutate(across(everything(), as.numeric)) |> # なぜか必要。なぜ
+  umap(verbose = TRUE, 
+       n_threads = 4, 
+       pca = 100, # 何も変わらん
+       min_dist =  .01, # default = .1
+       spread = .5
+       )
+"
+"2","[2022-08-17 00:13:06]  starting umap
+"

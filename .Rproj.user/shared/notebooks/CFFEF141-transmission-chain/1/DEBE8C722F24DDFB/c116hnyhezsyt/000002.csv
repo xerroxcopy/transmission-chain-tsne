@@ -1,0 +1,88 @@
+"0","library(umap)"
+"2","Warning message:
+"
+"2","R graphics engine version 15 is not supported by this version of RStudio. The Plots tab will be disabled until a newer version of RStudio is installed. 
+"
+"0","library(tidyverse)"
+"2","Registered S3 methods overwritten by 'dbplyr':
+  method         from
+  print.tbl_lazy     
+  print.tbl_sql      
+"
+"1","── [1mAttaching packages[22m ───────────────────────── tidyverse 1.3.2 ──
+"
+"1","[32m✔[39m [34mggplot2[39m 3.3.6     [32m✔[39m [34mpurrr  [39m 0.3.4
+[32m✔[39m [34mtibble [39m 3.1.8     [32m✔[39m [34mdplyr  [39m 1.0.9
+[32m✔[39m [34mtidyr  [39m 1.2.0     [32m✔[39m [34mstringr[39m 1.4.0
+[32m✔[39m [34mreadr  [39m 2.1.2     [32m✔[39m [34mforcats[39m 0.5.1
+"
+"1","── [1mConflicts[22m ──────────────────────────── tidyverse_conflicts() ──
+[31m✖[39m [34mdplyr[39m::[32mfilter()[39m masks [34mstats[39m::filter()
+[31m✖[39m [34mdplyr[39m::[32mlag()[39m    masks [34mstats[39m::lag()
+"
+"0","library(snedata)"
+"0","library(imager)"
+"2","Loading required package: magrittr
+"
+"2","
+Attaching package: ‘magrittr’
+
+"
+"2","The following object is masked from ‘package:purrr’:
+
+    set_names
+
+"
+"2","The following object is masked from ‘package:tidyr’:
+
+    extract
+
+"
+"2","
+Attaching package: ‘imager’
+
+"
+"2","The following object is masked from ‘package:magrittr’:
+
+    add
+
+"
+"2","The following object is masked from ‘package:stringr’:
+
+    boundary
+
+"
+"2","The following object is masked from ‘package:tidyr’:
+
+    fill
+
+"
+"2","The following objects are masked from ‘package:stats’:
+
+    convolve, spectrum
+
+"
+"2","The following object is masked from ‘package:graphics’:
+
+    frame
+
+"
+"2","The following object is masked from ‘package:base’:
+
+    save.image
+
+"
+"0","library(purrr)"
+"0","library(Rtsne)"
+"0","library(irlba)"
+"2","Loading required package: Matrix
+"
+"2","
+Attaching package: ‘Matrix’
+
+"
+"2","The following objects are masked from ‘package:tidyr’:
+
+    expand, pack, unpack
+
+"

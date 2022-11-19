@@ -1,0 +1,10 @@
+"0","library(imager)
+"
+"2","Loading required package: magrittr
+"
+"2","Error: package or namespace load failed for ‘imager’ in dyn.load(file, DLLpath = DLLpath, ...):
+ unable to load shared object '/Library/Frameworks/R.framework/Versions/4.2/Resources/library/imager/libs/imager.so':
+  dlopen(/Library/Frameworks/R.framework/Versions/4.2/Resources/library/imager/libs/imager.so, 0x0006): Library not loaded: '/opt/X11/lib/libX11.6.dylib'
+  Referenced from: '/Library/Frameworks/R.framework/Versions/4.2/Resources/library/imager/libs/imager.so'
+  Reason: tried: '/opt/X11/lib/libX11.6.dylib' (no such file), '/Library/Frameworks/R.framework/Resources/lib/libX11.6.dylib' (no such file), '/Library/Frameworks/R.framework/Resources/lib/libX11.6.dylib' (no such file), '/Users/mm/lib/libX11.6.dylib' (no such file), '/usr/local/lib/libX11.6.dylib' (no such file), '/usr/lib/libX11.6.dylib' (no such file), '/lib/libX11.6.dylib' (no such file), '/Library/Java/JavaVirtualMachines/jdk1.8.0_241.jdk/Contents/Home/jre/lib/server/libX11.6.dylib' (no such file), '/Library/Fra
+"
